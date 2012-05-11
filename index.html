@@ -48,6 +48,16 @@
 				text-align: right;
 				padding-right: 0.5em;
 			}
+			.score-bar {
+				position: absolute;
+				width: 100%;
+				height: 10px;
+				background: #808080;
+			}
+			.score-bar div {
+				position: absolute;
+				height: 10px;
+			}
 		</style>
 
 		<title>Test</title>
@@ -55,6 +65,12 @@
 	<body>
 		<div id="message"></div>
 		<ul id="scores"></ul>
+		<div class="score-bar">
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+		</div>
 		<canvas id="canvas" style="width:100%; height: 100%; display: block;">Wat</canvas>
 		<script>
 			window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame  || window.oRequestAnimationFrame || function(callback) {
@@ -97,38 +113,44 @@
 			var heads;
 			var viewOrigin = Vector.zero;
 			function updateTranslation() {
-				var border = 10;
-				var x = head.position.x - width / 2;
-				var y = head.position.y - height / 2;
-
-				if(x < -border)
-					x = -border;
-				else if(x > border + universe.width - width)
-					x = border + universe.width - width;
-				if(universe.width + 2 * border < width)
+				var x, y
+				if(!head) {
 					x = (universe.width - width) / 2;
-
-				if(y < -border)
-					y = -border;
-				else if(y > border + universe.height - height)
-					y = border + universe.height - height;
-				if(universe.height + 2 * border < height)
 					y = (universe.height - height) / 2;
+				} else {
+					var border = 20;
+					x = head.position.x - width / 2;
+					y = head.position.y - height / 2;
 
+					if(x < -border)
+						x = -border;
+					else if(x > border + universe.width - width)
+						x = border + universe.width - width;
+					if(universe.width + 2 * border < width)
+						x = (universe.width - width) / 2;
+
+					if(y < -border)
+						y = -border;
+					else if(y > border + universe.height - height)
+						y = border + universe.height - height;
+					if(universe.height + 2 * border < height)
+						y = (universe.height - height) / 2;
+				}
 				viewOrigin = new Vector(x, y);
 			}
-
+			
 			(function joinTheGame(x) {
 				var n = "jl-bot" + x;
 				socket.emit('join', n, function(data, silly) {
 					if(data) {
 						localStorage['name'] = name = n;
-						startPlaying();
 					} else joinTheGame(++x);
 				});
 			})(0);
 
 			socket.on('entityadded', function (data) {
+				if(data.i in universe.entities) return;
+
 				var b = new Ball(
 					Vector.ify(data.p),
 					data.r,
@@ -144,42 +166,74 @@
 				$('#message').text(str);
 			});
 			socket.on('scores', function (scores) {
-				var s = $('#scores').empty();
-				scores.forEach(function(score) {
+				//Get the DOM elements
+				var scoreList = $('#scores').empty();
+				var scoreBar = $('.score-bar').empty();
+
+				//Keep track of left and rightmost bars
+				var mostLeft = 0;
+				var mostRight = 0;
+
+				scores.forEach(function(score, i) {
+					score = { name: score[0], value: score[1], color: score[2] };
+					//Add names to scoreboard
 					$('<li />').append(
-						$('<span class="name"/>').text(score[0]), " ", 
-						$('<span />').text(score[1])
-					).css('color', score[2]).appendTo(s);
-				})
+						$('<span class="name"/>').text(score.name), " ", 
+						$('<span />').text(score.value)
+					).css('color', score.color).appendTo(scoreList);
+
+					//Pad out the bar, alternating sides
+					if(i%2 == 0) {
+						//left
+						$('<div />').css({
+							backgroundColor: score.color,
+							width: (score.value / 10) + '%',
+							left:  (mostLeft    / 10) + '%'
+						}).appendTo(scoreBar);
+						mostLeft += score.value;
+					}
+					else {
+						//right
+						$('<div />').css({
+							backgroundColor: score.color,
+							width: (score.value / 10) + '%',
+							right: (mostRight   / 10) + '%'
+						}).appendTo(scoreBar);
+						mostRight += score.value;
+					}
+				});
 			});
 
 			var override = true;
-			var mouse = new Vector;
-			function startPlaying() {
-				socket.on('entityupdates', function (data) {
-					Object.forEach(data.e, function(edata, id) {
-						if(id in universe.entities) {
-							var p = Vector.ify(edata.pos);
-							var c = Color.ify(edata.color);
-							var e = universe.entities[id];
-							e.position = p;
-							e.color = c;
-							e.radius = edata.radius
-							e.playername = edata.playername
-							e.head = edata.head
-						} else {
-
-							//console.log("Id "+id+" not found!");
-						}
-					});
-					var newHeads = {};
-					Object.forEach(data.s, function(id, name) {
-						newHeads[name] = universe.entities[id];
-					});
-					head = newHeads[name];
-					heads = newHeads;
-
-					var shortest = universe.entities.reduce(function(small, e) {
+			var mouse = new Vector();
+			socket.on('entityupdates', function (data) {
+				Object.forEach(data.e, function(edata, id) {
+					var p = Vector.ify(edata.pos);
+					var c = Color.ify(edata.color);
+					if(+id in universe.entities) {
+						var e = universe.entities[+id];
+						e.position = p;
+						e.color = c;
+						e.radius = edata.radius
+						e.playername = edata.playername
+						e.head = edata.head
+					} else {
+						var b = new Ball(
+							p,
+							edata.radius,
+							c
+						);
+						b._id = +id;
+						universe.addEntity(b);
+					}
+				});
+				var newHeads = {};
+				Object.forEach(data.s, function(id, name) {
+					newHeads[name] = universe.entities[id];
+				});
+				head = newHeads[name];
+				heads = newHeads;
+				var shortest = universe.entities.reduce(function(small, e) {
 						if(small == head) {
 							var blob;
 							universe.entities.forEach(function(e){
@@ -206,49 +260,47 @@
 
 					socket.emit('playercontrol', override ? mouse.plus(viewOrigin) : shortest.position);
 				});
-				
+
 				$(window).keydown(function(e) {
 					if(e.which == 32) override = true;
-				})
+				});
 
 				$(window).keyup(function(e) {
 					if(e.which == 32) override = false;
-				})
+				});
 
 				$(document).mousemove(function(e) {
 					mouse.set(e.pageX, e.pageY);
-				})
+				});
 
-				var lastt = Date.now();
+			var lastt = Date.now();
 				function draw(t) {
 					//Calculate frame time
 					var dt = (t - lastt) / 1000.0;
 					ctx.clearRect(0, 0, width, height);
 					ctx.save();
-					if(head) {
-						updateTranslation();
-						ctx.translate(-viewOrigin.x, -viewOrigin.y);
-						ctx.globalCompositeOperation = "source-over";
-						ctx.fillStyle = "black";
-						ctx.fillRect(0, 0, 2000, 2000);
 
-						universe.entities.forEach(function(e) {
-							e.drawTo(ctx);
-						});
-						ctx.fillStyle = "white";
-						Object.forEach(heads, function(h) {
-							ctx.beginPath();
-							ctx.arc(h.position.x, h.position.y, h.radius / 2, 0, Math.PI * 2, false);
-							ctx.fill();
-						});
-					}
+					updateTranslation();
+					ctx.translate(-viewOrigin.x, -viewOrigin.y);
+					ctx.globalCompositeOperation = "source-over";
+					ctx.fillStyle = "black";
+					ctx.fillRect(0, 0, 2000, 2000);
+
+					universe.entities.forEach(function(e) {
+						e.drawTo(ctx);
+					});
+					ctx.fillStyle = "white";
+					Object.forEach(heads, function(h) {
+						ctx.beginPath();
+						ctx.arc(h.position.x, h.position.y, h.radius / 2, 0, Math.PI * 2, false);
+						ctx.fill();
+					});
 					//prepare for next frame
 					lastt = t;
 					ctx.restore();
 					requestAnimationFrame(draw);
 				}
 				requestAnimationFrame(draw);
-			}
 		</script>
 	</body>
 </html>
