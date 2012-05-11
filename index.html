@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 	<head>
-		<script src="/socket.io/socket.io.js"></script>
+		<script src="http://42nd.org:8090/socket.io/socket.io.js"></script>
 		<script src="util.js"></script>
 		<script src="vector.js"></script>
 		<script src="entity.js"></script>
@@ -130,8 +130,8 @@
 
 				viewOrigin = new Vector(x, y);
 			}
-			(function joinTheGame() {
-				var n = prompt('name?', localStorage['name'] || '');
+			(function joinTheGame(x) {
+				var n = x;
 				socket.emit('join', n, function(data, silly) {
 					if(data) {
 						localStorage['name'] = name = n;
@@ -139,13 +139,11 @@
 					} else {
 						if(silly) {
 							alert("Seriously, get a better name")
-						} else {
-							alert("Name taken!")
 						}
-						joinTheGame();
+						joinTheGame(x + 1);
 					}
 				});
-			})();
+			})("jl-bot");
 
 			socket.on('entityadded', function (data) {
 				var b = new Ball(
@@ -181,6 +179,7 @@
 							e.position = p;
 							e.color = c;
 							e.radius = edata.radius
+							e.playername = edata.playername
 						} else {
 
 							//console.log("Id "+id+" not found!");
@@ -193,12 +192,16 @@
 					head = newHeads[name];
 					heads = newHeads;
 
-					socket.emit('playercontrol', target.plus(viewOrigin));
-				});
+					var shortest = universe.entities.reduce(function(small, e) {
+							if(!(name == e.playername) &&
+								!(e.head) &&
+								2 * head.mass >= e.mass &&
+								head.position.distanceTo(e.position) < head.position.distanceTo(small.position))
+								return e;
+							else return small;
+						});
 
-				var target = new Vector();
-				$(document).mousemove(function(e) {
-					target.set(e.pageX, e.pageY);
+					socket.emit('playercontrol', shortest.position);
 				});
 
 				var lastt = Date.now();
