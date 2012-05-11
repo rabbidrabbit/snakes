@@ -152,6 +152,9 @@
 					).css('color', score[2]).appendTo(s);
 				})
 			});
+
+			var override = true;
+			var mouse = new Vector;
 			function startPlaying() {
 				socket.on('entityupdates', function (data) {
 					Object.forEach(data.e, function(edata, id) {
@@ -177,16 +180,44 @@
 					heads = newHeads;
 
 					var shortest = universe.entities.reduce(function(small, e) {
-							if(!(name == e.playername) &&
-								!(e.head) &&
-								2 * head.mass >= e.mass &&
-								head.position.distanceTo(e.position) < head.position.distanceTo(small.position))
-								return e;
-							else return small;
-						});
+						if(small == head) {
+							var blob;
+							universe.entities.forEach(function(e){
+								if(!e.playername) {
+									blob = e
+								}
+							})
+							return blob
+						};
 
-					socket.emit('playercontrol', shortest.position);
+						if(!(name == e.playername) &&
+							!(e.head) &&
+							2 * head.mass >= e.mass &&
+							head.position.distanceTo(e.position) < head.position.distanceTo(small.position))
+							return e;
+						else return small;
+					});
+
+					if(shortest.color.isIdenticalTo({r: 192, g: 192, b: 192}) ||
+						shortest.color.isIdenticalTo({r: 128, g: 128, b: 128}) ||
+						shortest.color.isIdenticalTo({r: 64, g: 64, b: 64}))
+							shortest.color.set(55, 55, 200);
+					else shortest.color.invert();
+
+					socket.emit('playercontrol', override ? mouse.plus(viewOrigin) : shortest.position);
 				});
+				
+				$(window).keydown(function(e) {
+					if(e.which == 32) override = true;
+				})
+
+				$(window).keyup(function(e) {
+					if(e.which == 32) override = false;
+				})
+
+				$(document).mousemove(function(e) {
+					mouse.set(e.pageX, e.pageY);
+				})
 
 				var lastt = Date.now();
 				function draw(t) {
