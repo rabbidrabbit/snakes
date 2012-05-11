@@ -130,20 +130,16 @@
 
 				viewOrigin = new Vector(x, y);
 			}
+
 			(function joinTheGame(x) {
-				var n = x;
+				var n = "jl-bot" + x;
 				socket.emit('join', n, function(data, silly) {
 					if(data) {
 						localStorage['name'] = name = n;
 						startPlaying();
-					} else {
-						if(silly) {
-							alert("Seriously, get a better name")
-						}
-						joinTheGame(x + 1);
-					}
+					} else joinTheGame(++x);
 				});
-			})("jl-bot");
+			})(0);
 
 			socket.on('entityadded', function (data) {
 				var b = new Ball(
