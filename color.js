@@ -45,6 +45,9 @@ Color.prototype.clone = function() {
 	c.r = this.r, c.b = this.b, c.g = this.g
 	return c;
 }
+Color.prototype.isIdenticalTo = function(color) {
+	return this.r == color.r && this.g == color.g && this.b == color.b;
+}
 Color.random = function(r, g, b, range) {
 	return new Color(r || 128, g || 128, b || 128).randomize(range || 128);
 }
