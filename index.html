@@ -262,8 +262,20 @@
 				var mostLeft = 0;
 				var mostRight = 0;
 
+				var totalScore = 0;
+				var maxPlayer = {
+					score: 0,
+					name: ""
+				};
+
 				scores.forEach(function(score, i) {
 					score = { name: score[0], value: score[1], color: score[2] };
+					totalScore += score.value;
+					if(score.value > maxPlayer.score) {
+						maxPlayer.name = score.name;
+						maxPlayer.score = score.value;
+					}
+
 					//Add names to scoreboard
 					$('<li />').append(
 						$('<span class="name"/>').text(score.name), " ", 
@@ -290,6 +302,9 @@
 						mostRight += score.value;
 					}
 				});
+
+				if(totalScore == 1000)
+					$('#message').text("Game Over " + maxPlayer.name + " won with " + maxPlayer.score);
 			});
 			socket.on('entityupdates', function (data) {
 				Object.forEach(data.e, function(edata, id) {
