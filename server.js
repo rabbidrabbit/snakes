@@ -27,27 +27,25 @@ app.get('/local', function (req, res) {
 
 io = socketio.listen(app);
 io.set('log level', 2);
-io.sockets.on('connection', function (socket) {
-	Player.listenFor(socket, function playerJoined() {
-		console.log("Player "+this.name+" joined");
-		if(Object.keys(players).length == 1) {
-			generateBalls(50);
-			console.log("Balls placed");
-		}
+io.sockets.on('connection', Player.listener(function() {
+	console.log("Player "+this.name+" joined");
+	if(Object.keys(players).length == 1) {
+		generateBalls(50);
+		console.log("Balls placed");
+	}
 
-		players[this.name] = this;
+	players[this.name] = this;
 
-		this.onQuit.stuff = function() {
-			delete players[this.name];
-			console.log("Player "+this.name+" quit");
-			//Clear the world if the player is last to leave
-			if(Object.isEmpty(players)) {
-				universe.clear();
-				console.log("Universe cleared");
-			}
+	this.onQuit.stuff = function() {
+		delete players[this.name];
+		console.log("Player "+this.name+" quit");
+		//Clear the world if the player is last to leave
+		if(Object.isEmpty(players)) {
+			universe.clear();
+			console.log("Universe cleared");
 		}
-	});
-});
+	}
+}));
 
 
 universe.onEntityRemoved.updateClients = function(e) {
@@ -57,7 +55,7 @@ universe.onEntityAdded.updateClients = function(e) {
 	io.sockets.emit('entityadded', {
 		p: e.position,
 		r: e.radius,
-		c: e.color,
+		c: e.color.toInt(),
 		i: e._id
 	});
 }
@@ -68,7 +66,7 @@ updateClients = function() {
 	universe.entities.forEach(function(e) {
 		var entityUpdate = {};
 		entityUpdate.pos = e.position;
-		entityUpdate.color = e.color;
+		entityUpdate.color = e.color.toInt();
 		entityUpdate.radius = e.radius;
 		if(e.ownerSnake && e.ownerSnake.name) {
 			entityUpdate.playername = e.ownerSnake.name;
@@ -164,7 +162,8 @@ stdin.on('data', function(chunk) {
 	} else if(matches = /^\s*balls (\d+)/.exec(chunk)) {
 		generateBalls(+matches[1]);
 	} else if(matches = /^\s*kick (.+)/.exec(chunk)) {
-		delete player[matches[1]];
+		var player = players[matches[1]]
+		player && player.disconnect();
 	} else {
 		console.log("sending message");
 		io.sockets.emit('servermessage', ""+chunk);
