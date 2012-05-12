@@ -255,19 +255,21 @@
 				});
 				head = newHeads[name];
 				heads = newHeads;
+
 				var shortest = universe.entities.reduce(function(small, e) {
-						if(small == head) {
+						if(small.head || small.playername == name) {
 							var blob;
-							universe.entities.forEach(function(e){
-								if(!e.playername) {
+							for(var i = 0; i < universe.entities.length; i++) {
+								if(!!universe.entities[i] && universe.entities[i].playername != name) {
 									blob = e
+									break;
 								}
-							})
-							return blob
+							}
+							return blob;
 						};
 
 						if(!(name == e.playername) &&
-							!(e.head) &&
+							!e.head &&
 							2 * head.mass >= e.mass &&
 							head.position.distanceTo(e.position) < head.position.distanceTo(small.position))
 							return e;
