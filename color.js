@@ -45,7 +45,16 @@ Color.prototype.toHexString = function() {
 };
 Color.prototype.toInt = function(rgb) {
 	return Math.round(this.r) << 16 | Math.round(this.g) << 8 | Math.round(this.b);
-}
+};
+Object.defineProperty(String.prototype, 'colored', {
+	value: function(c) {
+		var r = Math.round(c.r * 5 / 255);
+		var g = Math.round(c.g * 5 / 255);
+		var b = Math.round(c.b * 5 / 255);
+		return '\033[38;5;' + (16 + r*36 + g*6 + b) + 'm' + this + '\033[0m';
+	},
+	enumerable: false
+});
 Color.fromInt = function(rgb) {
 	var b = rgb & 0xff;
 	var g = (rgb >>= 8) & 0xff;
@@ -72,16 +81,24 @@ Color.ify = function(data) {
 	else if(data instanceof Object)
 		return new Color(data.r, data.g, data.b);
 }
-Color.randomHue = function() {
-	var a = Math.random() * 3;
-	var b = Math.random() * 256;
+Color.niceColor = function(a) {
+	a *= 6;
+	var b = (a % 1) * 128 - 64;
+	// var a = Math.random() * 6;
+	// var b = Math.random() * 128 - 64;
 
 	if(a < 1)
-		return new Color(255, b, 256 - b);
+		return new Color(255, 64 + b, 64 - b); //yellow-magenta face
 	else if(a < 2)
-		return new Color(256 - b, 255, b);
+		return new Color(64 - b, 255, 64 + b); //magenta-cyan face
+	else if(a < 3)
+		return new Color(64 + b, 64 - b, 255); //cyan-yellow face
+	else if(a < 4)
+		return new Color(0, 192 + b, 192 - b); //green-blue face
+	else if(a < 5)
+		return new Color(192 - b, 0, 192 + b); //blue-red face
 	else
-		return new Color(b, 256 - b, 255);
+		return new Color(192 + b, 192 - b, 0); //red-green face
 }
 
 //Primaries

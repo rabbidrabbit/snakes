@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html xmlns:og="http://opengraphprotocol.org/schema/">
 	<head>
 		<script src="http://42nd.org:8090/socket.io/socket.io.js"></script>
 		<script src="util.js"></script>
@@ -8,13 +8,7 @@
 		<script src="color.js"></script>
 		<script src="ball.js"></script>
 		<script src="world.js"></script>
-		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Dosis:300,700" />
-		<meta property="og:title" content="Snakes - a game written in Javascript and HTML5 canvas"/>
-		<meta property="og:type" content="website"/>
-		<meta property="og:url" content="http://42nd.org:8090/"/>
-		<meta property="og:description" content="A game for two (or more) players. Control the snakes with the arrow keys and WASD. Eat or be eaten!"/>
-		<meta property="og:image" content="http://eric-wieser.tk/images/snaps/snakes.png" />
-		<meta property="fb:admins" content="eric.wieser"/>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Dosis:300,600|Ubuntu" />
 		<style>
 			html, body {
 				background: #202020; width: 100%; height: 100%; margin: 0; padding: 0;
@@ -24,17 +18,118 @@
 			#message {
 				color: white;
 				position: absolute;
-				top:0;
+				top:10px;
 				left: 0;
 				right: 0;
 				font-size: 30px;
 				text-align: center;
 			}
-			#scores {
+			.score-bar {
 				position: absolute;
-				bottom: 5px;
+				width: 100%;
+				height: 10px;
+				background: #808080;
+			}
+			.score-bar div {
+				position: absolute;
+				height: 10px;
+			}
+			.vertical-center {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				display: table;
+			}
+			.vertical-center > div{
+				/*position: relative;
+				top: -50%;
+				left: -50%;*/
+				display: table-cell;
+				vertical-align: middle;
+			}
+			.vertical-center > div > div{
+				/*position: relative;
+				top: -50%;
+				left: -50%;*/
+				margin: auto;
+			}
+
+			h1{
+				background: #404040;
+				color: white;
+				margin: 0;
+				padding: 5px;
+				line-height: 40px;
+				font-size: 36px;
+			}
+			h2 {
+				color: #ff8000;
+				line-height: 30px;
+				font-size: 24px;
+				padding: 5px;
+				margin: 0;
+			}
+			p {
+				margin: 0;
+				padding: 5px;
+				font-family: Ubuntu;
+				line-height: 20px;
+			}
+			small {
+				padding: 5px;
+				font-family: Ubuntu;
+				color: #808080;
+				width: 100%;
+				text-align: center;
+				display: block;
+			}
+			a {
+				color: #ff8000;
+				border-bottom: 1px dotted #ff8000;
+				text-decoration: none;
+			}
+			.box {
+				border-top: 5px solid;
+				border-bottom: 5px solid;
+				/*box-shadow: 0 0 25px #404040;*/
+				overflow: hidden;
+				background: rgba(64, 64, 64, 0.5);
+				color: white;
+			}
+			#login .box{
+				width: 400px;
+			}
+			#login input{
+				width: 100%;
+				box-sizing: border-box;
+				margin: 0;
+				display: block;
+				padding: 0px;
+				height: 50px;
+				line-height: 50px;
+				font: inherit;
+				font-size: 40px;
+				border: none;
+				text-align: center;
+   				outline: none;
+   				background-color: transparent;
+			}
+			#login button {
+				display: none;
+			}
+			#about .box{
+				width: 80%;
+			}
+			#bottom {
+				position: absolute;
+				bottom: 0;
 				left: 0;
 				right: 0;
+			}
+
+			#scores {
 				font-size: 30px;
 				line-height: 35px;
 				padding: 0;
@@ -55,19 +150,48 @@
 				text-align: right;
 				padding-right: 0.5em;
 			}
-			.score-bar {
-				position: absolute;
+
+			#chat input{
+				font: inherit;
+				height: 20px;
+				color: white;
+				padding: 0px;
+				margin: 0;
+				border: 0;
+				display: block;
 				width: 100%;
-				height: 10px;
-				background: #808080;
+				box-sizing: border-box;
+				background: transparent;
+				outline: none;
 			}
-			.score-bar div {
+
+			#chat .history {
+				color: white;
+				margin: 0;
+				padding: 0;
 				position: absolute;
-				height: 10px;
+				bottom: 20px;
+			}
+			#chat .history li {
+				color: white;
+				padding: 0;
+				margin: 0;
+				word-wrap: break-word;
+				width: 100%;
+			}
+			#wrapper {
+				position: absolute;
+				top: 10px;
+				left: 0;
+				right: 0;
+				bottom: 0;
+			}
+			canvas {
+				width: 100%;
+				height: 100%;
+				display: block;
 			}
 		</style>
-
-		<title>Test</title>
 	</head>
 	<body>
 		<div id="message"></div>
@@ -77,9 +201,80 @@
 			<div></div>
 			<div></div>
 			<div></div>
+		<div id="wrapper"><canvas id="canvas">If you can see this, your browser sucks</canvas></div>
+		<div id="top">
+			<div id="message"></div>
+			<div class="score-bar">
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+			</div>
 		</div>
-		<canvas id="canvas" style="width:100%; height: 100%; display: block;">Wat</canvas>
+		<div id="bottom">
+			<ul id="scores"></ul>
+			<form id="chat">
+				<ul class="history">
+				</ul>
+				<input />
+				<button type="submit" style="display: none"></button>
+			</form>
+		</div>
+		<div id="login" class="vertical-center">
+			<div>
+				<div class="box">
+					<h1>Snakes</h2>
+					<p>Control the snake by moving the mouse - no clicking required. Eat other snakes, or be eaten. <a href="#" id="about-link">About</a>.</p>
+					<form id="join">
+						<button type="submit">Join the game</button>
+						<input id="name" placeholder="Enter your name here" autocomplete="off" autofocus="autofocus" />
+					</form>
+					<small>Type your name above, and press Enter to join the game</small>
+				</div>
+			</div>
+		</div>
+		<div id="about" class="vertical-center" style="display: none">
+			<div>
+				<div class="box">
+					<h1>About Snakes</h1>
+					<p>Snakes started off as a simple physics engine, with just balls bouncing off each other and the edges of the screen. Then a form of magnetic attraction was simulated. Interestingly, the balls naturally formed into wriggling snake shapes. A couple more tweaks, and a set of balls followed the player. It began to become apparent that there was a potential for a game here. Add a second player, a scoring system, and the ability to eat other balls, and you have a single computer, keyboard-mashing game. You can still play a <a href="/local">2 player</a>, <a href="/local?3">3 player</a>, or even <a href="/local?4">4 player</a> version of the single-computer version.</p>
+
+					<h2>Networking</h2>
+					<p>Snakes needed improving. The controls were terrible, the arena too small, and most keyboards couldn't cope with the strain of 4 users each hammering arrow keys. It needed to go networked. Node.js was the answer, along with Socket.IO. This was an exercise in learning new technologies, and seeing where they led to. </p>
+
+					<h2>Created by <a href="http://eric-wieser.tk/">Eric Wieser</a></h2>
+					<p>With thanks to Max Sinclair for allowing a core of his webserver to be devoted to Snakes, Luke Suess and Jonathan Laver for game inspiration along the way, and numerous friends for playing, testing, and hacking the game so that it could be improved.</p>
+					<p>The inspiration to go networked came from Rob Hawkes' <a href="http://rawkets.com">Rawkets</a></p>
+					<p>Browse the source code <a href="http://github.com/eric-wieser/snakes">on github</a>
+				</div>
+			</div>
+		</div>
 		<script>
+			var colorId = Math.random();
+			var color = Color.niceColor(colorId);
+			$('.box').css({
+				borderTopColor: color.toString(),
+				borderBottomColor: color.toString(),
+			});
+			$('a').css({
+				borderBottomColor: color.toString(),
+			});
+			$('#login input, h2, a').css({
+				color: color.toString()
+			});
+			$('#about .box').click(function(e) {
+				e.stopPropagation();
+			});
+			//Show and hide the about box
+			$('#about-link').click(function() {
+				$('#login')
+					.fadeOut()
+					.queue(function(next) { $('#about').fadeIn(next);       })
+					.queue(function(next) { $('#about').one('click', next); })
+					.queue(function(next) { $('#about').fadeOut(next);      })
+					.fadeIn();
+				return false;
+			})
 			window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame  || window.oRequestAnimationFrame || function(callback) {
 					window.setTimeout(function() {callback(Date.now())}, 1000 / 60.0);
 				};
@@ -114,12 +309,13 @@
 
 			
 
+			//var socket = io.connect('http://42nd.org:8090');
 			var socket = io.connect('http://42nd.org:8090');
 			var name;
 			var head;
 			var heads;
 			var viewOrigin = Vector.zero;
-			function updateTranslation() {
+			function nextViewOrigin() {
 				var x, y
 				if(!head) {
 					x = (universe.width - width) / 2;
@@ -143,34 +339,34 @@
 					if(universe.height + 2 * border < height)
 						y = (universe.height - height) / 2;
 				}
-				viewOrigin = new Vector(x, y);
+				return new Vector(x, y);
 			}
-			var color = Color.randomHue();
+
 			(function joinTheGame(x) {
 				var n = "jonathan" + x;
-				socket.emit('join', {name: n, color: color.toInt()}, function(data, silly) {
+				socket.emit('join', {name: n, color: colorId}, function(data) {
 					if(data) {
 						localStorage['name'] = name = n;
-					} else joinTheGame(++x);
+					} else if(data instanceof Object && data.error) joinTheGame(++x);
 				});
 			})(0);
 
-			socket.on('entityadded', function (data) {
-				if(data.i in universe.entities) return;
+			// socket.on('entityadded', function (data) {
+			// 	if(data.i in universe.entities) return;
 
-				var b = new Ball(
-					Vector.ify(data.p),
-					data.r,
-					Color.ify(data.c)
-				);
-				b._id = data.i; //probably going to regret this
-				universe.addEntity(b);
-			});
-			socket.on('entitylost', function (id) {
-				delete universe.entities[id];
-			});
+			// 	var b = new Ball(
+			// 		Vector.ify(data.p),
+			// 		data.r,
+			// 		Color.ify(data.c)
+			// 	);
+			// 	b._id = data.i; //probably going to regret this
+			// 	universe.addEntity(b);
+			// });
+			// socket.on('entitylost', function (id) {
+			// 	delete universe.entities[id];
+			// });
 			socket.on('servermessage', function (str) {
-				$('#message').text(str);
+				$('#message').html(str);
 			});
 			socket.on('scores', function (scores) {
 				//Get the DOM elements
@@ -244,9 +440,13 @@
 					} else {
 						var b = new Ball(p,	r, c);
 						b._id = +id;
-						universe.addEntity(b);
+						universe.entities[+id] = b;
 					}
 				});
+				for(id in universe.entities)
+					if(!(id in data.e))
+						delete universe.entities[id];
+
 				var newHeads = {};
 				Object.forEach(data.s, function(id, name) {
 					newHeads[name] = universe.entities[id];
@@ -295,34 +495,86 @@
 					mouse.set(e.pageX, e.pageY);
 				});
 
+			$('#chat').submit(function() {
+				if(playing) {
+					var input = $(this).find('input');
+					var msg = input.val();
+					input.val('');
+					socket.emit('chat', msg);
+				}
+				return false;
+			});
+
+			socket.on('chat', function (data) {
+				var name = data.n;
+				var color = Color.ify(data.c);
+				var message = data.m;
+				var history = $('#chat .history');
+				//alert(name + ":" + message);
+				$('<li />').text(' '+message).prepend(
+					$('<span />').css('color', color+"").text(name)
+				).appendTo('#chat .history');
+
+				while(history.children().size() > 10)
+					history.children().first().remove();
+			});
+			function drawArrow(x, y, angle) {
+				ctx.save();
+				ctx.translate(x, y);
+				ctx.rotate(angle);
+				ctx.beginPath();
+				ctx.moveTo(5, 0);
+				ctx.lineTo(20,-7.5);
+				ctx.lineTo(20, 7.5);
+				ctx.restore();
+			}
 			var lastt = Date.now();
-				function draw(t) {
-					//Calculate frame time
-					var dt = (t - lastt) / 1000.0;
-					ctx.clearRect(0, 0, width, height);
-					ctx.save();
+			function draw(t) {
+				//Calculate frame time
+				var dt = (t - lastt) / 1000.0;
+				ctx.clearRect(0, 0, width, height);
+				ctx.save();
+				viewOrigin = nextViewOrigin();
 
-					updateTranslation();
-					ctx.translate(-viewOrigin.x, -viewOrigin.y);
-					ctx.globalCompositeOperation = "source-over";
-					ctx.fillStyle = "black";
-					ctx.fillRect(0, 0, 2000, 2000);
+				ctx.translate(-viewOrigin.x, -viewOrigin.y);
+				ctx.globalCompositeOperation = "source-over";
+				ctx.fillStyle = "black";
+				ctx.fillRect(0, 0, 2000, 2000);
 
-					universe.entities.forEach(function(e) {
-						e.drawTo(ctx);
-					});
-					ctx.fillStyle = "white";
-					Object.forEach(heads, function(h) {
+				ctx.globalCompositeOperation = "lighter";
+				universe.entities.forEach(function(e) {
+					e.drawTo(ctx);
+				});
+				Object.forEach(heads, function(h) {
+					if(h.position.x + h.radius < viewOrigin.x) {
+						drawArrow(viewOrigin.x, h.position.y, 0);
+						ctx.fillStyle = h.color+"";
+						ctx.fill();
+					} else if(h.position.x - h.radius > viewOrigin.x + width) {
+						drawArrow(viewOrigin.x + width, h.position.y, Math.PI);
+						ctx.fillStyle = h.color+"";
+						ctx.fill();
+					} else if(h.position.y + h.radius < viewOrigin.y) {
+						drawArrow(h.position.x, viewOrigin.y,  Math.PI / 2);
+						ctx.fillStyle = h.color+"";
+						ctx.fill();
+					} else if(h.position.y - h.radius > viewOrigin.y + height) {
+						drawArrow(h.position.x, viewOrigin.y + height, 3 * Math.PI / 2);
+						ctx.fillStyle = h.color+"";
+						ctx.fill();
+					} else {
 						ctx.beginPath();
 						ctx.arc(h.position.x, h.position.y, h.radius / 2, 0, Math.PI * 2, false);
+						ctx.fillStyle = "white";
 						ctx.fill();
-					});
-					//prepare for next frame
-					lastt = t;
-					ctx.restore();
-					requestAnimationFrame(draw);
-				}
+					}
+				});
+				//prepare for next frame
+				lastt = t;
+				ctx.restore();
 				requestAnimationFrame(draw);
+			}
+			requestAnimationFrame(draw);
 		</script>
 	</body>
 </html>
