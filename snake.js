@@ -11,23 +11,36 @@ Snake = function Snake(length, color, pos, world) {
 	this.balls.forEach(function(b) {
 		this.world.addEntity(b);
 	}, this);
+	Object.defineEvent(this, 'onDeath');
+	Object.defineEvent(this, 'onBallEaten');
 }
 var onHeadHit = function(thing) {
 	var that = thing.ownerSnake;
 	if(that == undefined) {
 		if(this.eat(thing)) {
-			//console.log(this.color + ' ate a ball');
+			this.onBallEaten(thing, "free");
 			return false; //prevent balls interacting
 		}
 	}
-	else if(that != this && thing != that.head) {
-		if(this.canEat(thing)) {
+	else if(that != this) {
+		if(thing == that.head) {
+			if(that.length == 1 && this.head.mass > that.head.mass*2) {
+				this.eat(thing);
+				that.balls = [];
+				this.onBallEaten(thing, "head");
+				that.destroy();
+				that.onDeath(this);
+				return false;
+			}
+		}
+		else if(this.canEat(thing)) {
 			that.eatenAt(thing);
 			this.eat(thing);
-			//console.log(this.color +' hit '+that.color);
-			return false; //prevent balls interacting
+			this.onBallEaten(thing, "tail");
+			return false;
 		}
 	}
+	return true;
 }
 Object.defineProperty(Snake.prototype, 'tail', {
 	get: function() { return this.balls[this.balls.length - 1]; }
@@ -37,16 +50,18 @@ Object.defineProperty(Snake.prototype, 'head', {
 	set: function(h) {
 		var current = this.head;
 		if(h != current) {
+			var force = Vector.zero
 			if(current) {
-				h.forces.player = current.forces.player;
+				force  = current.forces.player;
 				delete current.onInteracted.eat;
 				delete current.forces.player;
-			} else {
-				h.forces.player = Vector.zero;
+			} 
+			if(h) {
+				var snake = this;
+				h.forces.player = force
+				h.onInteracted.eat = function(x) {return onHeadHit.call(snake, x);}
+				h.ownerSnake = this;
 			}
-			var snake = this;
-			h.onInteracted.eat = function(x) {onHeadHit.call(snake, x);}
-			h.ownerSnake = this;
 			this._head = h;
 		}
 	}
@@ -117,11 +132,18 @@ Snake.prototype.eat = function(ball) {
 Snake.prototype.destroy = function() {
 	this.balls.forEach(function(b) {
 		this.world.removeEntity(b);
+		delete b.ownerSnake;
 	}, this);
+	this.balls = [];
+	this.head = null;
+
+	//Wipe all member functions to try and prevent problems
+	for(var p in Snake.prototype)
+		if(typeof this[p] == "function")
+			this[p] = function() {};
 }
 var balls = [];
 Snake.prototype.update = function(dt) {
-
 	//Shortening
 	this.balls.forAdjacentPairs(function(a, b, ai, bi) {
 		var rate = 50;// + 5*(this.length - ai);
@@ -131,8 +153,14 @@ Snake.prototype.update = function(dt) {
 			a.mass = aMass - rate;
 			b.mass += rate;
 		} else if(diff < -rate) {
-			a.mass = aMass + rate;
-			b.mass -= rate;
+			var bMass = b.mass;
+			if(bMass < rate) {
+				b.mass = 0;
+				a.mass = aMass + bMass;
+			} else {
+				a.mass = aMass + rate;
+				b.mass = bMass - rate;
+			}
 		} else {
 			a.mass = this.maxMass;
 			b.mass += diff;
