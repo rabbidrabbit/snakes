@@ -145,10 +145,10 @@
 				}
 				viewOrigin = new Vector(x, y);
 			}
-			
+			var color = Color.randomHue();
 			(function joinTheGame(x) {
-				var n = "jl-bot" + x;
-				socket.emit('join', n, function(data, silly) {
+				var n = "jonathan" + x;
+				socket.emit('join', {name: n, color: color.toInt()}, function(data, silly) {
 					if(data) {
 						localStorage['name'] = name = n;
 					} else joinTheGame(++x);
@@ -279,7 +279,7 @@
 						shortest.color.isIdenticalTo({r: 64, g: 64, b: 64}))
 							shortest.color.set(55, 55, 200);
 					else shortest.color.invert();
-
+					
 					socket.emit('playercontrol', override ? mouse.plus(viewOrigin) : shortest.position);
 				});
 
