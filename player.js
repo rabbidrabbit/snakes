@@ -7,7 +7,7 @@ Player = function Player(socket, name, color) {
 	this.color = color;
 	this.name = name;
 	this.connected = true;
-	this.resendAllEntities();
+	//this.resendAllEntities();
 	
 
 	var $this = this;
@@ -59,60 +59,32 @@ Player.prototype.chat = function(msg) {
 		this.emit('chat', msg);
 	}
 }
-Player.prototype.resendAllEntities = function() {
-	var p = this;
-	universe.entities.forEach(function(e) {
-		p.socket.emit('entityadded', {
-			p: e.position.toFixed(2),
-			r: e.radius,
-			c: e.color.toInt(),
-			i: e._id
-		});
-	});
-}
 
-Player.prototype.spawnSnake = function() {
-	var $this = this;
-	var snake = new Snake(
-		10,
-		this.color,
-		universe.randomPosition(),
-		universe
-	);
-	snake.owner = this;
-	snake.target = snake.head.position.clone();
-	snake.onDeath.playerDeath = function(killer) {
-		$this.snake = null;
-		$this.emit('death', 'enemy', killer.owner)
-	};
-	snake.onBallEaten.notify = function(ball, type) {
-		console.log($this.coloredName +" ate a "+type+" ball");
-	}
-	this.snake = snake;
-}
 
-//returns a function that listens to a socket, and calls onJoined when a player joins
-Player.listener = function(onJoined) {
-	return function(socket) {
-		var gotResponse = false;
-		socket.on('join', function(data, callback) {
-			if(gotResponse) return;
+Player.prototype.spawnSnake = function(world) {
+	if(this.connected) {
+		if(this.snake) this.snake.destroy();
+		this.emit('spawn');
 
-			var name = data.name;
-			if(typeof name != "string") return;
+		var $this = this;
+		var snake = new Snake(
+			10,
+			this.color,
+			world.randomPosition(),
+			world
+		);
+		snake.owner = this;
+		snake.target = snake.head.position.clone();
+		snake
+			.on('death', function(killer) {
+				$this.snake = null;
+				$this.emit('death', 'enemy', killer.owner)
+			})
+			.on('eat.tail', function(ball) {
+				if(ball.ownerSnake && ball.ownerSnake.owner)
+					util.log($this.coloredName +" ate some of "+ball.ownerSnake.owner.coloredName);
+			});
+		this.snake = snake;
 
-			name = name.replace(/^\s+|\s+$/, '');
-			if(name.length < 3 || name.length > 64) {
-				callback({error: "Name length invalid"});
-			} else if(!(name in players)) {
-				gotResponse = true;
-				onJoined.call(new Player(socket, name, Color.niceColor(data.color)));
-				callback(true);
-			} else {
-				//Name already taken
-				callback({error: "Someone else has that name"});
-				console.log();
-			}
-		});
 	}
 }

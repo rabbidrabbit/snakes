@@ -1,13 +1,17 @@
+require('./entity');
+require('./vector');
+require('./util');
+
+var util = require('util');
+
 Ball = function Ball(pos, radius, color) {
 	Entity.call(this, pos)
 	this.radius = radius;
 	this.color = color || 'red';
 
 	this.forces.contact = {};
-	Object.defineEvent(this, 'onInteracted', true);
 }
-Ball.n = 0;
-Ball.prototype = new Entity;
+util.inherits(Ball, Entity);
 
 Object.defineProperty(Ball.prototype, 'mass', {
 	get: function() {
@@ -56,14 +60,14 @@ Ball.prototype.bounceOffWalls = function(width, height) {
 };
 
 Ball.prototype.interactWith = function(that) {
-	if(this.following == that || that.following == this) return false;
+	if(this.following == that || that.following == this) { return false; } 
 	else {
 		var diff = this.position.minus(that.position);
 		var dist = diff.length;
 		diff.overEquals(dist);
 
 		var overlap = this.radius + that.radius - dist;
-		if(overlap > 0 && dist != 0 && that.onInteracted(this) && this.onInteracted(that)) {
+		if(overlap > 0 && dist != 0 && Entity.allowInteraction(this, that)) {
 			var meanmass = 1 / ((1 / this.mass) + (1 / that.mass));
 
 			overlap *= meanmass;
@@ -80,6 +84,15 @@ Ball.prototype.clearForces = function() {
 	Entity.prototype.clearForces.call(this);
 	this.forces.contact = {};
 	this.forces.following = {};
+
+	if(this.following) {
+		delete this.following.followedBy;
+		delete this.following;
+	}
+	if(this.followedBy) {
+		delete this.followedBy.following;
+		delete this.followedBy;
+	}
 }
 
 Ball.prototype.drawTo = function(ctx) {
@@ -93,7 +106,8 @@ Ball.prototype.drawTo = function(ctx) {
 };
 
 Ball.prototype.follow = function(that) {
-	this.following = that
+	this.following = that;
+	that.followedBy = this;
 
 	target = this.position.minus(that.position)
 		.normalize()
